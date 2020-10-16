@@ -33,7 +33,7 @@ module.exports = {
     default: 'rollup -c rollup.config.ts -w',
     test: {
       default: 'jest -runInBand --forceExit --detectOpenHandles --verbose',
-      watch: 'jest --watch'
+      watch: 'jest -runInBand --forceExit --detectOpenHandles --verbose --watch'
     },
     maintenance: {
       default: series('maintenance.update_dependencies'),

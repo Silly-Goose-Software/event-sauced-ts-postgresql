@@ -50,7 +50,6 @@ COMMIT;
   public async appendToStream(streamId: string, events: EventStorage[]): Promise<void> {
     const schemaName = this.currentSchema() // This is a bit dirty...
     const schema = schemaName + '.'
-    const event = events.pop()!
     const templateQuery = `
       INSERT INTO ${schema}commits (
         stream_id,
@@ -58,16 +57,15 @@ COMMIT;
         event_number,
         meta_data,
         event_body
-      ) VALUES (
-        $1,
-        $2,
-        $3,
-        $4,
-        $5
-      )
+      ) VALUES
+        ${this.expand(events.length, 5)}
+
     `
 
-    const parameters = [streamId, event.eventId, event.eventNumber, event.metaData, event.eventBody]
+    const parameters = events
+      .map((event) => [streamId, event.eventId, event.eventNumber, event.metaData, event.eventBody])
+      .flat()
+
     // TODO: Log line to say event with id foo and stream id blah has been written successfully.
     await this.pool.query(templateQuery, parameters)
   }
@@ -81,6 +79,20 @@ COMMIT;
 
   private currentSchema(): string {
     return this.options.schema ? `${this.options.schema}` : 'eventstore'
+  }
+
+  private expand(rowCount: number, columnCount: number, startAt = 1) {
+    let index = startAt
+    return Array(rowCount)
+      .fill(0)
+      .map(
+        () =>
+          `(${Array(columnCount)
+            .fill(0)
+            .map(() => `$${index++}`)
+            .join(', ')})`
+      )
+      .join(', ')
   }
 }
 
